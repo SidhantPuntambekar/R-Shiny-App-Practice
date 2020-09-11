@@ -1,38 +1,41 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
 library(shiny)
 
-# Define UI for application that draws a histogram
+# Define UI for data upload app ----
 ui <- fluidPage(
-
-    # Application title
-    titlePanel("Clustifyr scRNA-seq Analysis"),
-
-    # Sidebar with a slider input for number of bins 
+    
+    # App title ----
+    titlePanel("Uploading Files"),
+    
+    # Sidebar layout with input and output definitions ----
     sidebarLayout(
+        
+        # Sidebar panel for inputs ----
         sidebarPanel(
-            fileInput("Raw Counts Matrix", "Choose Matrix file",
+            
+            # Input: Select a file ----
+            fileInput("file1", "Choose CSV File",
                       multiple = FALSE,
                       accept = c("text/csv",
                                  "text/comma-separated-values,text/plain",
-                                 ".csv")
+                                 ".csv")),
+            
+            tags$hr(),
+            
+            # Input: Checkbox if file has header ----
+            checkboxInput("header", "Header", TRUE),
+            
+            
+            # Horizontal line ----
+            tags$hr(),
+            
+            # Input: Select number of rows to display ----
+            radioButtons("disp", "Display",
+                         choices = c(Head = "head",
+                                     All = "all"),
+                         selected = "head")
+            
         ),
-        tags$hr(),
-        # Input: Select number of rows to display ----
-        # Input: Select number of rows to display ----
-        radioButtons("disp", "Display",
-                     choices = c(Head = "head",
-                                 All = "all"),
-                     selected = "head")
-        ),
-
+        
         # Main panel for displaying outputs ----
         mainPanel(
             
@@ -40,12 +43,13 @@ ui <- fluidPage(
             tableOutput("contents")
             
         )
+        
     )
 )
 
-# Define server logic required to draw a histogram
+# Define server logic to read selected file ----
 server <- function(input, output) {
-
+    
     output$contents <- renderTable({
         
         # input$file1 will be NULL initially. After the user selects
@@ -62,8 +66,6 @@ server <- function(input, output) {
                                header = input$header,
                                sep = input$sep,
                                quote = input$quote)
-                output$counts_matrix <- renderTable(df)
-                head(output$counts_matrix)
             },
             error = function(e) {
                 # return a safeError if a parsing error occurs
@@ -77,8 +79,10 @@ server <- function(input, output) {
         else {
             return(df)
         }
+        
     })
+    
 }
 
-# Run the application 
-shinyApp(ui = ui, server = server)
+# Create Shiny app ----
+shinyApp(ui, server)
