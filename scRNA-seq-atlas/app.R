@@ -62,6 +62,8 @@ server <- function(input, output) {
                                header = input$header,
                                sep = input$sep,
                                quote = input$quote)
+                output$counts_matrix <- renderTable(df)
+                head(output$counts_matrix)
             },
             error = function(e) {
                 # return a safeError if a parsing error occurs
