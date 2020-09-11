@@ -13,21 +13,32 @@ library(shiny)
 ui <- fluidPage(
 
     # Application title
-    titlePanel("Old Faithful Geyser Data"),
+    titlePanel("Clustifyr scRNA-seq Analysis"),
 
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
+            fileInput("Raw Counts Matrix", "Choose Matrix file",
+                      multiple = FALSE,
+                      accept = c("text/csv",
+                                 "text/comma-separated-values,text/plain",
+                                 ".csv")
+        ),
+        tags$hr(),
+        # Input: Select number of rows to display ----
+        # Input: Select number of rows to display ----
+        radioButtons("disp", "Display",
+                     choices = c(Head = "head",
+                                 All = "all"),
+                     selected = "head")
         ),
 
-        # Show a plot of the generated distribution
+        # Main panel for displaying outputs ----
         mainPanel(
-           plotOutput("distPlot")
+            
+            # Output: Data file ----
+            tableOutput("contents")
+            
         )
     )
 )
@@ -35,13 +46,35 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
 
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white')
+    output$contents <- renderTable({
+        
+        # input$file1 will be NULL initially. After the user selects
+        # and uploads a file, head of that data file by default,
+        # or all rows if selected, will be shown.
+        
+        req(input$file1)
+        
+        # when reading semicolon separated files,
+        # having a comma separator causes `read.csv` to error
+        tryCatch(
+            {
+                df <- read.csv(input$file1$datapath,
+                               header = input$header,
+                               sep = input$sep,
+                               quote = input$quote)
+            },
+            error = function(e) {
+                # return a safeError if a parsing error occurs
+                stop(safeError(e))
+            }
+        )
+        
+        if(input$disp == "head") {
+            return(head(df))
+        }
+        else {
+            return(df)
+        }
     })
 }
 
