@@ -1,10 +1,12 @@
 library(shiny)
-
+library(readr)
+library(tools)
+library(clustifyr)
 # Define UI for data upload app ----
 ui <- fluidPage(
     
     # App title ----
-    titlePanel("Uploading Files"),
+    titlePanel("Clustifyr Reference Matrix Generation"),
     
     # Sidebar layout with input and output definitions ----
     sidebarLayout(
@@ -14,7 +16,7 @@ ui <- fluidPage(
             
             # Input: Select a file ----
             fileInput("file1", "Choose Matrix File",
-                      multiple = FALSE,
+                      multiple = TRUE,
                       accept = c("text/csv",
                                  "text/comma-separated-values,text/plain",
                                  ".csv", ".tsv")),
@@ -68,19 +70,41 @@ server <- function(input, output) {
         
         req(input$file1)
         req(input$file2)
+        fileTypeFile1 <- file_ext(input$file1)
+        fileTypeFile2 <- file_ext(input$file2)
         # when reading semicolon separated files,
         # having a comma separator causes `read.csv` to error
         tryCatch(
             {
-                df1 <- read.csv(input$file1$datapath,
-                               header = input$header,
-                               sep = input$sep,
-                               quote = input$quote)
+                if (fileTypeFile1 == ".csv")
+                {
+                    df1 <- read.csv(input$file1$datapath,
+                                    header = input$header,
+                                    sep = input$sep,
+                                    quote = input$quote)
+                }
+                else
+                {
+                    df1 <- read_tsv(input$file1$datapath,
+                                    header = input$header,
+                                    sep = input$sep,
+                                    quote = input$quote)
+                }
                 
-                df2 <- read.csv(input$file2$datapath,
+                if (fileTypeFile2 == ".csv")
+                {
+                    df2 <- read.csv(input$file2$datapath,
                                 header = input$header,
                                 sep = input$sep,
                                 quote = input$quote)
+                }
+                else
+                {
+                    df2 <- read_tsv(input$file2$datapath,
+                                    header = input$header,
+                                    sep = input$sep,
+                                    quote = input$quote)   
+                }
             },
             error = function(e) {
                 # return a safeError if a parsing error occurs
