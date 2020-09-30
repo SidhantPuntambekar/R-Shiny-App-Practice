@@ -1,7 +1,13 @@
 library(shiny)
+library(dplyr)
 library(readr)
 library(tools)
 library(clustifyr)
+library(rsconnect)
+options(shiny.maxRequestSize = 1500*1024^2)
+options(repos = BiocManager::repositories())
+options(shiny.reactlog = TRUE)
+
 # Define UI for data upload app ----
 ui <- fluidPage(
     
@@ -19,12 +25,22 @@ ui <- fluidPage(
                       multiple = TRUE,
                       accept = c("text/csv",
                                  "text/comma-separated-values,text/plain",
-                                 ".csv", ".tsv")),
+                                 ".csv",
+                                 '.xlsx',
+                                 ".tsv",
+                                 ".rds",
+                                 ".rda"),
+            ),
             fileInput("file2", "Choose Metadata File",
                       multiple = FALSE,
                       accept = c("text/csv",
                                  "text/comma-separated-values,text/plain",
-                                 ".csv", ".tsv")),
+                                 ".csv",
+                                 '.xlsx',
+                                 ".tsv",
+                                 ".rds",
+                                 ".rda"),
+                      ),
             
             tags$hr(),
             
@@ -67,43 +83,47 @@ server <- function(input, output) {
         # input$file1 will be NULL initially. After the user selects
         # and uploads a file, head of that data file by default,
         # or all rows if selected, will be shown.
-        
+    
         req(input$file1)
         req(input$file2)
-        fileTypeFile1 <- file_ext(input$file1)
-        fileTypeFile2 <- file_ext(input$file2)
+        fileTypeFile1 <- tools::file_ext(input$file1$datapath)
+        fileTypeFile2 <- tools::file_ext(input$file2$datapath)
         # when reading semicolon separated files,
         # having a comma separator causes `read.csv` to error
         tryCatch(
             {
-                if (fileTypeFile1 == ".csv")
+                if (fileTypeFile1 == "csv")
                 {
                     df1 <- read.csv(input$file1$datapath,
                                     header = input$header,
                                     sep = input$sep,
                                     quote = input$quote)
                 }
-                else
+                else if (fileTypeFile1 == "tsv")
                 {
                     df1 <- read_tsv(input$file1$datapath,
-                                    header = input$header,
-                                    sep = input$sep,
                                     quote = input$quote)
                 }
+                else
+                {
+                    df1 <- readRDA(input$file1)
+                }
                 
-                if (fileTypeFile2 == ".csv")
+                if (fileTypeFile2 == "csv")
                 {
                     df2 <- read.csv(input$file2$datapath,
                                 header = input$header,
                                 sep = input$sep,
                                 quote = input$quote)
                 }
-                else
+                else if (fileTypeFile2 == "tsv")
                 {
                     df2 <- read_tsv(input$file2$datapath,
-                                    header = input$header,
-                                    sep = input$sep,
                                     quote = input$quote)   
+                }
+                else
+                {
+                    df2 <- readRDA(input$file2)
                 }
             },
             error = function(e) {
@@ -128,6 +148,23 @@ server <- function(input, output) {
         }
         
         
+    })
+    
+    output$reference <- renderTable({
+        req(input$file1)
+        req(input$file2)
+        fileTypeFile1 <- file_ext(input$file1)
+        fileTypeFile2 <- file_ext(input$file2)
+        df1 <- read.csv(input$file1$datapath,
+                        header = input$header,
+                        sep = input$sep,
+                        quote = input$quote)
+        df2 <- read.csv(input$file2$datapath,
+                        header = input$header,
+                        sep = input$sep,
+                        quote = input$quote)
+        reference_matrix <- average_clusters(mat = df1, metadata = df2$cellCol, if_log = TRUE)
+        head(reference_matrix)
     })
     
 }
