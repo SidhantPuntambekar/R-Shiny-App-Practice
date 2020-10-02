@@ -83,60 +83,59 @@ server <- function(input, output) {
         # input$file1 will be NULL initially. After the user selects
         # and uploads a file, head of that data file by default,
         # or all rows if selected, will be shown.
-    
-        req(input$file1)
-        req(input$file2)
-        fileTypeFile1 <- tools::file_ext(input$file1$datapath)
-        fileTypeFile2 <- tools::file_ext(input$file2$datapath)
+        file <- input$file1
+        fileTypeFile1 <- tools::file_ext(file$datapath)
+        req(file)
         # when reading semicolon separated files,
         # having a comma separator causes `read.csv` to error
-        tryCatch(
+            if (fileTypeFile1 == "csv")
             {
-                if (fileTypeFile1 == "csv")
-                {
-                    df1 <- read.csv(input$file1$datapath,
-                                    header = input$header,
-                                    sep = input$sep,
-                                    quote = input$quote)
-                }
-                else if (fileTypeFile1 == "tsv")
-                {
-                    df1 <- read_tsv(input$file1$datapath,
-                                    quote = input$quote)
-                }
-                else
-                {
-                    df1 <- readRDA(input$file1)
-                }
-                
-                if (fileTypeFile2 == "csv")
-                {
-                    df2 <- read.csv(input$file2$datapath,
+                df1 <- read.csv(file$datapath,
                                 header = input$header,
                                 sep = input$sep,
                                 quote = input$quote)
-                }
-                else if (fileTypeFile2 == "tsv")
-                {
-                    df2 <- read_tsv(input$file2$datapath,
-                                    quote = input$quote)   
-                }
-                else
-                {
-                    df2 <- readRDA(input$file2)
-                }
-            },
-            error = function(e) {
-                # return a safeError if a parsing error occurs
-                stop(safeError(e))
             }
-        )
-        #file 1
-        if(input$disp == "head") {
-            return(head(df1))
+            else if (fileTypeFile1 == "tsv")
+            {
+                df1 <- read_tsv(file$datapath,
+                                header = input$header,
+                                quote = input$quote)
+            }
+            else
+            {
+                df1 <- load(file$datapath)
+            }
+                
+            #file 1
+            if(input$disp == "head") {
+                return(head(df1))
+            }
+            else {
+                return(df1)
+            }
         }
-        else {
-            return(df1)
+    )
+    
+    output$file2Contents <- renderTable({
+        file <- input$file2    
+        fileTypeFile2 <- tools::file_ext(file$datapath)
+        req(file)
+        if (fileTypeFile2 == "csv")
+        {
+            df2 <- read.csv(file$datapath,
+                            header = input$header,
+                            sep = input$sep,
+                            quote = input$quote)
+        }
+        else if (fileTypeFile2 == "tsv")
+        {
+            df2 <- read_tsv(file$datapath,
+                            header = input$header,
+                            quote = input$quote)   
+        }
+        else
+        {
+            df2 <- load(file$datapath)
         }
         
         #file 2
@@ -146,10 +145,9 @@ server <- function(input, output) {
         else {
             return(df2)
         }
+    }
+)
         
-        
-    })
-    
     output$reference <- renderTable({
         req(input$file1)
         req(input$file2)
